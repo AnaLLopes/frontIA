@@ -19,8 +19,12 @@ const TicTacToe = () => {
   let box7 = useRef(null);
   let box8 = useRef(null);
   let box9 = useRef(null);
+  let knn = useRef(null);
+  let tree = useRef(null);
+  let mlp = useRef(null);
 
   let box_array = [box1, box2, box3, box4, box5, box6, box7, box8, box9];
+
 
 
   const toggle = (e, num) => {
@@ -42,9 +46,62 @@ const TicTacToe = () => {
       setCount(++count);
     }
 
+    const args = data[0]+','+ data[1]+','+ data[2]+','+ data[3]+','+ data[4]+','+ data[5]+','+ data[6]+','+ data[7]+','+ data[8];
+
     checkwin();
+    checkKnn();
+    checkTree();
+    checkMlp();
     
   };
+
+
+  const checkKnn = () => {
+  const { exec } = require('child_process');
+
+    exec = ('python3 knn.py ${args}', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return;
+      }
+      let winner = stdout;
+      wonKnn(winner);
+      console.log(`stderr: ${stderr}`);
+    }
+    );
+  }
+
+  const checkTree = () => {
+  const { exec } = require('child_process');
+
+    exec('python3 tree.py ${args}', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return;
+      }
+      let winner = stdout;
+      wonTree(winner);
+      console.log(`stderr: ${stderr}`);
+    }
+    );
+
+  }
+
+  const checkMlp = () => {
+  const { exec } = require('child_process');
+    
+    exec('python3 mlp.py ${args}', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return;
+      }
+      let winner = stdout;
+      wonMlp(winner);
+      console.log(`stderr: ${stderr}`);
+    }
+    );
+    
+  }
 
   const checkwin = () => {
     if(data[0] === data[1] && data[1] === data[2] && data[2]!== "") {
@@ -74,6 +131,47 @@ const TicTacToe = () => {
       titleRef.current.innerHTML = `Winner: <img src=${cross_img}>`;
     } else {
       titleRef.current.innerHTML = `Winner: <img src=${circle_img}>`;
+    } 
+    }
+
+  const wonKnn = (winner) => {
+    setLock(true);
+    if(winner === "w") {
+      return;
+    } else if (winner === "x") {
+      knn.current.innerHTML = `Winner: <img src=${cross_img}>`;
+    } else if (winner === "o"){
+      knn.current.innerHTML = `Winner: <img src=${circle_img}>`;
+    } else {
+      knn.current.innerHTML = `Empate`;
+    }
+  }
+
+  const wonTree = (winner) => {
+    setLock(true);
+
+    if(winner === "w") {
+      return;
+    } else if (winner === "x") {
+      tree.current.innerHTML = `Winner: <img src=${cross_img}>`;
+    } else if (winner === "o"){
+      tree.current.innerHTML = `Winner: <img src=${circle_img}>`;
+    } else {
+      tree.current.innerHTML = `Empate`;
+    }
+  }
+
+  const wonMlp = (winner) => {
+    setLock(true);
+    
+    if(winner === "w") {
+      return;
+    } else if (winner === "x") {
+      mlp.current.innerHTML = `Winner: <img src=${cross_img}>`;
+    } else if (winner === "o"){
+      mlp.current.innerHTML = `Winner: <img src=${circle_img}>`;
+    } else {
+      mlp.current.innerHTML = `Empate`;
     }
   }
 
@@ -90,6 +188,11 @@ const TicTacToe = () => {
     <div className="container">
       <h1 className="title" ref={titleRef}></h1>
       <div className="board">
+        <div className="row0">
+          <div className="title" ref={knn} > </div>
+          <div className="title" ref={tree}></div>
+          <div className="title" ref={mlp} ></div>
+        </div>
         <div className="row1">
           <div className="cell" ref={box1} onClick={(e)=>{toggle(e,0)}}></div>
           <div className="cell" ref={box2} onClick={(e)=>{toggle(e,1)}}></div>
