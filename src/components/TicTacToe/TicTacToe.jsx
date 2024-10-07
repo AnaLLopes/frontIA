@@ -1,216 +1,138 @@
 import React, { useState, useRef } from "react";
+import axios from 'axios';
 import "./TicTacToe.css";
 import circle_img from "../../assets/Red_circle.png";
 import cross_img from "../../assets/Red_X.png";
 
-let data = ["", "", "", "", "", "", "", "", ""];
-
 const TicTacToe = () => {
-  let [count, setCount] = useState(0);
-  let [lock, setLock] = useState(false);
-  let titleRef = useRef(null);
-  
-  let box1 = useRef(null);
-  let box2 = useRef(null);
-  let box3 = useRef(null);
-  let box4 = useRef(null);
-  let box5 = useRef(null);
-  let box6 = useRef(null);
-  let box7 = useRef(null);
-  let box8 = useRef(null);
-  let box9 = useRef(null);
-  let knn = useRef(null);
-  let tree = useRef(null);
-  let mlp = useRef(null);
+  const [count, setCount] = useState(0);
+  const [lock, setLock] = useState(false);
+  const [data, setData] = useState(Array(9).fill("b"));
+  const titleRef = useRef(null);
 
-  let box_array = [box1, box2, box3, box4, box5, box6, box7, box8, box9];
+  const boxRefs = useRef([React.createRef(), React.createRef(), React.createRef(), React.createRef(), React.createRef(), React.createRef(), React.createRef(), React.createRef(), React.createRef()]);
+  const knnRef = useRef(null);
+  const treeRef = useRef(null);
+  const mlpRef = useRef(null);
 
-
-
-  const toggle = (e, num) => {
-    if (lock) {
-      return 0;
+  const toggle = async (e, num) => {
+    if (lock || data[num] !== "b") {
+      return;
     }
 
-    if(count % 2 === 0) 
-    {
-      e.target.innerHTML = `<img src='${cross_img}'>`;
-      data[num] = "x";
-      setCount(++count);
+    const newData = [...data];
+    if (count % 2 === 0) {
+      newData[num] = "x";
+      e.target.innerHTML = `<img src='${cross_img}' alt='X'>`;
+    } else {
+      newData[num] = "o";
+      e.target.innerHTML = `<img src='${circle_img}' alt='O'>`;
     }
+    setData(newData);
+    setCount(count + 1);
 
-    else 
-    {
-      e.target.innerHTML = `<img src='${circle_img}'>`;
-      data[num] = "o";
-      setCount(++count);
-    }
+    const args = newData.map(val => (val === "" ? "b" : val)).join(',');
 
-    const args = data[0]+','+ data[1]+','+ data[2]+','+ data[3]+','+ data[4]+','+ data[5]+','+ data[6]+','+ data[7]+','+ data[8];
-
-    checkwin();
-    checkKnn();
-    checkTree();
-    checkMlp();
-    
+    checkwin(newData);
+    await checkKnn(args);
+    await checkTree(args);
+    await checkMlp(args);
   };
 
-
-  const checkKnn = () => {
-  const { exec } = require('child_process');
-
-    exec = ('python3 knn.py ${args}', (error, stdout, stderr) => {
-      if (error) {
-        console.error(`exec error: ${error}`);
+  const checkwin = (newData) => {
+    const lines = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+    for (const [a, b, c] of lines) {
+      if (newData[a] && newData[a] === newData[b] && newData[a] === newData[c] && newData[a] !== "b") {
+        won(newData[a]);
         return;
       }
-      let winner = stdout;
-      wonKnn(winner);
-      console.log(`stderr: ${stderr}`);
     }
-    );
-  }
-
-  const checkTree = () => {
-  const { exec } = require('child_process');
-
-    exec('python3 tree.py ${args}', (error, stdout, stderr) => {
-      if (error) {
-        console.error(`exec error: ${error}`);
-        return;
-      }
-      let winner = stdout;
-      wonTree(winner);
-      console.log(`stderr: ${stderr}`);
-    }
-    );
-
-  }
-
-  const checkMlp = () => {
-  const { exec } = require('child_process');
-    
-    exec('python3 mlp.py ${args}', (error, stdout, stderr) => {
-      if (error) {
-        console.error(`exec error: ${error}`);
-        return;
-      }
-      let winner = stdout;
-      wonMlp(winner);
-      console.log(`stderr: ${stderr}`);
-    }
-    );
-    
-  }
-
-  const checkwin = () => {
-    if(data[0] === data[1] && data[1] === data[2] && data[2]!== "") {
-      won(data[2])
-    } else if(data[3] === data[4] && data[4] === data[5] && data[5]!== "") {
-      won(data[5])
-    } else if(data[6] === data[7] && data[7] === data[8] && data[8]!== "") {
-      won(data[8])
-    } else if(data[0] === data[3] && data[3] === data[6] && data[6]!== "") {
-      won(data[6])
-    } else if(data[1] === data[4] && data[4] === data[7] && data[7]!== "") {
-      won(data[7])
-    } else if(data[2] === data[5] && data[5] === data[8] && data[8]!== "") {
-      won(data[8])
-    } else if(data[0] === data[4] && data[4] === data[8] && data[8]!== "") {
-      won(data[8])
-    } else if(data[0] === data[1] && data[1] === data[2] && data[2]!== "") {
-      won(data[2])
-    } else if(data[2] === data[4] && data[4] === data[6] && data[6]!== "") {
-      won(data[6])
-    } 
   }
 
   const won = (winner) => {
     setLock(true);
     if (winner === "x") {
-      titleRef.current.innerHTML = `Winner: <img src=${cross_img}>`;
+      titleRef.current.innerHTML = `Winner: <img src=${cross_img} alt='X'>`;
     } else {
-      titleRef.current.innerHTML = `Winner: <img src=${circle_img}>`;
-    } 
-    }
-
-  const wonKnn = (winner) => {
-    setLock(true);
-    if(winner === "w") {
-      return;
-    } else if (winner === "x") {
-      knn.current.innerHTML = `Winner: <img src=${cross_img}>`;
-    } else if (winner === "o"){
-      knn.current.innerHTML = `Winner: <img src=${circle_img}>`;
-    } else {
-      knn.current.innerHTML = `Empate`;
+      titleRef.current.innerHTML = `Winner: <img src=${circle_img} alt='O'>`;
     }
   }
 
-  const wonTree = (winner) => {
-    setLock(true);
-
-    if(winner === "w") {
-      return;
-    } else if (winner === "x") {
-      tree.current.innerHTML = `Winner: <img src=${cross_img}>`;
-    } else if (winner === "o"){
-      tree.current.innerHTML = `Winner: <img src=${circle_img}>`;
-    } else {
-      tree.current.innerHTML = `Empate`;
+  const checkKnn = async (args) => {
+    try {
+      const response = await axios.post('http://localhost:5000/knn', { data: args });
+      const winner = response.data;
+      updatePrediction(winner, knnRef, "KNN");
+    } catch (error) {
+      console.error(`Error in KNN prediction: ${error}`);
     }
   }
 
-  const wonMlp = (winner) => {
-    setLock(true);
-    
-    if(winner === "w") {
-      return;
-    } else if (winner === "x") {
-      mlp.current.innerHTML = `Winner: <img src=${cross_img}>`;
-    } else if (winner === "o"){
-      mlp.current.innerHTML = `Winner: <img src=${circle_img}>`;
-    } else {
-      mlp.current.innerHTML = `Empate`;
+  const checkTree = async (args) => {
+    try {
+      const response = await axios.post('http://localhost:5000/tree', { data: args });
+      const winner = response.data;
+      updatePrediction(winner, treeRef, "Tree");
+    } catch (error) {
+      console.error(`Error in Tree prediction: ${error}`);
     }
+  }
+
+  const checkMlp = async (args) => {
+    try {
+      const response = await axios.post('http://localhost:5000/mlp', { data: args });
+      const winner = response.data;
+      updatePrediction(winner, mlpRef, "MLP");
+    } catch (error) {
+      console.error(`Error in MLP prediction: ${error}`);
+    }
+  }
+
+  const updatePrediction = (winner, ref, type) => {
+    if (winner === "w") {
+      return;}
+    ref.current.innerHTML = `${type}: ${winner}`;
   }
 
   const reset = () => {
+    setData(Array(9).fill("b"));
+    setCount(0);
     setLock(false);
-    data = ["", "", "", "", "", "", "", "", ""];
     titleRef.current.innerHTML = "";
-    box_array.map((e) => {
-      e.current.innerHTML = "";
-    })
+    knnRef.current.innerHTML = "";
+    treeRef.current.innerHTML = "";
+    mlpRef.current.innerHTML = "";
+    boxRefs.current.forEach(ref => ref.current.innerHTML = "");
   }
 
   return (
     <div className="container">
       <h1 className="title" ref={titleRef}></h1>
+          <div className="title" ref={knnRef}></div>
+          <div className="title" ref={treeRef}></div>
+          <div className="title" ref={mlpRef}></div>
       <div className="board">
-        <div className="row0">
-          <div className="title" ref={knn} > </div>
-          <div className="title" ref={tree}></div>
-          <div className="title" ref={mlp} ></div>
+        <div className="row row1">
+          <div className="cell" ref={boxRefs.current[0]} onClick={(e) => toggle(e, 0)}></div>
+          <div className="cell" ref={boxRefs.current[1]} onClick={(e) => toggle(e, 1)}></div>
+          <div className="cell" ref={boxRefs.current[2]} onClick={(e) => toggle(e, 2)}></div>
         </div>
-        <div className="row1">
-          <div className="cell" ref={box1} onClick={(e)=>{toggle(e,0)}}></div>
-          <div className="cell" ref={box2} onClick={(e)=>{toggle(e,1)}}></div>
-          <div className="cell" ref={box3} onClick={(e)=>{toggle(e,2)}}></div>
+        <div className="row row2">
+          <div className="cell" ref={boxRefs.current[3]} onClick={(e) => toggle(e, 3)}></div>
+          <div className="cell" ref={boxRefs.current[4]} onClick={(e) => toggle(e, 4)}></div>
+          <div className="cell" ref={boxRefs.current[5]} onClick={(e) => toggle(e, 5)}></div>
         </div>
-        <div className="row2">
-          <div className="cell" ref={box4} onClick={(e)=>{toggle(e,3)}}></div>
-          <div className="cell" ref={box5} onClick={(e)=>{toggle(e,4)}}></div>
-          <div className="cell" ref={box6} onClick={(e)=>{toggle(e,5)}}></div>
-        </div>
-        <div className="row3">
-          <div className="cell" ref={box7} onClick={(e)=>{toggle(e,6)}}></div>
-          <div className="cell" ref={box8} onClick={(e)=>{toggle(e,7)}}></div>
-          <div className="cell" ref={box9} onClick={(e)=>{toggle(e,8)}}></div>
+        <div className="row row3">
+          <div className="cell" ref={boxRefs.current[6]} onClick={(e) => toggle(e, 6)}></div>
+          <div className="cell" ref={boxRefs.current[7]} onClick={(e) => toggle(e, 7)}></div>
+          <div className="cell" ref={boxRefs.current[8]} onClick={(e) => toggle(e, 8)}></div>
         </div>
       </div>
-
-      <button className="reset" onClick={() =>{reset()}}>Reset</button>
+      <button className="reset" onClick={reset}>Reset</button>
     </div>
   );
 };
